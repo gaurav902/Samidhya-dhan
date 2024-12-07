@@ -3,7 +3,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { PostsPage } from "@/lib/types";
 import {
   InfiniteData,
+  Query,
   QueryFilters,
+  QueryKey,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -19,16 +21,26 @@ export function useSubmitPostMutation() {
   const mutation = useMutation({
     mutationFn: submitPost,
     onSuccess: async (newPost) => {
-      const queryFilter = {
+      const queryFilter: QueryFilters<
+        InfiniteData<PostsPage, string | null>,
+        Error,
+        InfiniteData<PostsPage, string | null>,
+        QueryKey
+      > = {
         queryKey: ["post-feed"],
-        predicate(query) {
+        predicate(query: Query<
+          InfiniteData<PostsPage, string | null>,
+          Error,
+          InfiniteData<PostsPage, string | null>,
+          QueryKey
+        >) {
           return (
             query.queryKey.includes("for-you") ||
             (query.queryKey.includes("user-posts") &&
               query.queryKey.includes(user.id))
           );
         },
-      } satisfies QueryFilters;
+      };
 
       await queryClient.cancelQueries(queryFilter);
 
@@ -49,13 +61,20 @@ export function useSubmitPostMutation() {
               ],
             };
           }
-        },
+          return oldData; // Ensure fallback for undefined
+        }
       );
 
       queryClient.invalidateQueries({
         queryKey: queryFilter.queryKey,
-        predicate(query) {
-          return queryFilter.predicate(query) && !query.state.data;
+        predicate(query: Query<
+          InfiniteData<PostsPage, string | null>,
+          Error,
+          InfiniteData<PostsPage, string | null>,
+          QueryKey
+        >) {
+          // Ensure the predicate always returns a boolean value
+          return Boolean(queryFilter.predicate?.(query) && !query.state.data);
         },
       });
 

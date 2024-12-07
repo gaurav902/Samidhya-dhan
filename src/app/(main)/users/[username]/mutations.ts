@@ -5,6 +5,7 @@ import { UpdateUserProfileValues } from "@/lib/validation";
 import {
   InfiniteData,
   QueryFilters,
+  QueryKey, // Import QueryKey here
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -34,9 +35,14 @@ export function useUpdateProfileMutation() {
       ]);
     },
     onSuccess: async ([updatedUser, uploadResult]) => {
-      const newAvatarUrl = uploadResult?.[0].serverData.avatarUrl;
+      const newAvatarUrl = uploadResult?.[0]?.serverData?.avatarUrl;
 
-      const queryFilter: QueryFilters = {
+      const queryFilter: QueryFilters<
+        InfiniteData<PostsPage, string | null>,
+        Error,
+        InfiniteData<PostsPage, string | null>,
+        QueryKey
+      > = {
         queryKey: ["post-feed"],
       };
 
@@ -45,7 +51,7 @@ export function useUpdateProfileMutation() {
       queryClient.setQueriesData<InfiniteData<PostsPage, string | null>>(
         queryFilter,
         (oldData) => {
-          if (!oldData) return;
+          if (!oldData) return undefined;
 
           return {
             pageParams: oldData.pageParams,
@@ -65,7 +71,7 @@ export function useUpdateProfileMutation() {
               }),
             })),
           };
-        },
+        }
       );
 
       router.refresh();
